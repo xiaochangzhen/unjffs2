@@ -411,7 +411,7 @@ static int __unjffs2_mkdir_recursive(struct jffs2_dir *list, char *rootdir)
 
 	for (step = list; step != NULL; step = step->next) {
 		sprintf(path, "%s%s", rootdir, step->path);
-		DASSERT(!mkdir(path, step->mode), return -1);
+		DASSERT(!mkdir(path, 0755/*step->mode*/), return -1);
 		PRINT("%s\n", path);
 		memcpy(step->path, path, strlen(path)+1);
 	}
@@ -761,7 +761,9 @@ int unjffs2_parse_write(char *buf, uint32_t size, char *dir)
 
 	while (offset < size) {
 
-		ASSERT(size - offset > sizeof(struct jffs2_unknown_node), break);
+		if (size - offset <= sizeof(struct jffs2_unknown_node)) {
+			break;
+		}
 
 		un = (struct jffs2_unknown_node *)point;
 		if (unjffs2_un_check(un, size - offset)) {
@@ -848,7 +850,7 @@ int unjffs2_usage(char *name)
 
 int main(int argc, char **argv)
 {
-	int fd, opt;
+	int fd, opt, ret = -1;
 	char *buf;
 	struct stat st;
 
@@ -884,7 +886,9 @@ int main(int argc, char **argv)
 
 	DASSERT(read(fd, buf, st.st_size) == (ssize_t) st.st_size, return -1);
 
-	unjffs2_parse_write(buf, st.st_size, output_dir);
+	ret = unjffs2_parse_write(buf, st.st_size, output_dir);
+
+	free(buf);
 
 	return 0;
 }
